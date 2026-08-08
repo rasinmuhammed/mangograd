@@ -1,4 +1,5 @@
 from .engine import Value
-from .nn import Neuron, Layer, MLP
+from .tensor import Tensor
+from .nn import Linear, MLP
 
-__all__ = ['Value', 'Neuron', 'Layer', 'MLP']
+__all__ = ['Value', 'Tensor', 'Linear', 'MLP']

@@ -1,61 +1,48 @@
-import random
-from mangograd.engine import Value
+import numpy as np
+from mangograd.tensor import Tensor
 
 class Module:
-
     def zero_grad(self):
         for p in self.parameters():
-            p.grad = 0.0
+            p.grad = np.zeros_like(p.grad)
 
     def parameters(self):
         return []
 
-class Neuron(Module):
+    def save_state_dict(self, path):
+        arrays = {f'p_{i}': p.data for i, p in enumerate(self.parameters())}
+        np.savez(path, **arrays)
 
-    def __init__(self, nin, nonlin=True):
-        self.w = [Value(random.uniform(-1,1)) for _ in range(nin)]
-        self.b = Value(random.uniform(-1,1))
-        self.nonlin = nonlin
+    def load_state_dict(self, path):
+        arrays = np.load(path)
+        for i, p in enumerate(self.parameters()):
+            p.data = arrays[f'p_{i}']
 
-    def __call__(self, x):
-        # w * x + b
-        act = sum((wi*xi for wi,xi in zip(self.w, x)), self.b)
-        return act.tanh() if self.nonlin else act
-
-    def parameters(self):
-        return self.w + [self.b]
-
-    def __repr__(self):
-        return f"{'Tanh' if self.nonlin else 'Linear'}Neuron({len(self.w)})"
-
-class Layer(Module):
-
-    def __init__(self, nin, nout, **kwargs):
-        self.neurons = [Neuron(nin, **kwargs) for _ in range(nout)]
+class Linear(Module):
+    def __init__(self, in_features, out_features):
+        # Weight Matrix: Shape (in, out)
+        # We scale by sqrt(in_features) for better initialization (Kaiming init)
+        self.weight = Tensor(np.random.randn(in_features, out_features) / np.sqrt(in_features))
+        # Bias Vector: Shape (1, out)
+        self.bias = Tensor(np.zeros((1, out_features)))
 
     def __call__(self, x):
-        out = [n(x) for n in self.neurons]
-        return out[0] if len(out) == 1 else out
+        return x @ self.weight + self.bias
 
     def parameters(self):
-        return [p for n in self.neurons for p in n.parameters()]
+        return [self.weight, self.bias]
 
     def __repr__(self):
-        return f"Layer of [{', '.join(str(n) for n in self.neurons)}]"
+        return f"Linear(in_features={self.weight.data.shape[0]}, out_features={self.weight.data.shape[1]})"
 
 class MLP(Module):
-
-    def __init__(self, nin, nouts):
-        sz = [nin] + nouts
-        self.layers = [Layer(sz[i], sz[i+1], nonlin=i!=len(nouts)-1) for i in range(len(nouts))]
+    def __init__(self, in_features, hidden_features, out_features):
+        self.layer1 = Linear(in_features, hidden_features)
+        self.layer2 = Linear(hidden_features, out_features)
 
     def __call__(self, x):
-        for layer in self.layers:
-            x = layer(x)
-        return x
+        x = self.layer1(x).relu()
+        return self.layer2(x)
 
     def parameters(self):
-        return [p for layer in self.layers for p in layer.parameters()]
-
-    def __repr__(self):
-        return f"MLP of [{', '.join(str(layer) for layer in self.layers)}]"
+        return self.layer1.parameters() + self.layer2.parameters()

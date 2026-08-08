@@ -60,3 +60,6 @@ cover/
 *.swp
 *.swo
 .DS_Store
+
+# Model Weights
+*.npz
