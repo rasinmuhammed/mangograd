@@ -3,7 +3,8 @@
 <div align="center">
   <img src="assets/cybermango.png" alt="Cybermango Hacker" width="400"/>
 </div>
-> **The Origin Story:** It's late. I'm watching Andrej Karpathy's legendary [Micrograd video](https://www.youtube.com/watch?v=VMj-3S1tku0). I'm eating an absolutely massive, perfectly ripe mango. The juices are flowing. The gradients are flowing. Suddenly, a thought hits me: *What if I built my own version of this? What if I added my own variations? And what if I named it after this exact fruit?*
+
+**The Origin Story:** It's late. I'm watching Andrej Karpathy's legendary [Micrograd video](https://www.youtube.com/watch?v=VMj-3S1tku0). I'm eating an absolutely massive, perfectly ripe mango. The juices are flowing. The gradients are flowing. Suddenly, a thought hits me: *What if I built my own version of this? What if I added my own variations? And what if I named it after this exact fruit?*
 
 Welcome to **Mangograd** as I build it. 
 
