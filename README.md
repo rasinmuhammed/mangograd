@@ -72,5 +72,33 @@ for epoch in range(100):
 model.save_state_dict("model.npz")
 ```
 
+## Correctness
+
+Every gradient is verified against PyTorch in the test suite, not asserted by
+eye. The checks cover matmul, broadcasting, division, exp, log, mean and
+variance over axes, max (including how ties are handled), ReLU, MSE,
+cross entropy, and gradient accumulation when a tensor is used more than once.
+
+BatchNorm is checked against `torch.nn.BatchNorm1d` for the input gradient
+specifically, because computing batch statistics outside the graph is an easy
+mistake that produces plausible but wrong gradients.
+
+There is also an end-to-end test that trains a network with BatchNorm and
+Dropout to over 95% accuracy on a non-linearly separable problem, since
+correct gradients alone do not prove a model can learn.
+
+```bash
+pip install -e ".[dev]"
+pytest -q
+```
+
 ## Contributing
-Eat a mango. Write some code. Submit a PR. 🥭
+
+Issues and pull requests are welcome. Run `pytest -q` before opening one.
+
+Eat a mango while you work. 🥭
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
