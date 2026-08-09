@@ -63,3 +63,7 @@ cover/
 
 # Model Weights
 *.npz
+
+# Virtual environments
+.venv/
+venv/

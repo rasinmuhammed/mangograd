@@ -1,23 +1,51 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mangograd"
 version = "0.1.0"
-description = "A transparent, pure Python autograd engine born out of Andrej Karpathy's micrograd."
+description = "A readable, NumPy-backed tensor autograd engine for learning how backpropagation actually works"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Muhammed Rasin" }]
+keywords = ["autograd", "deep-learning", "neural-networks", "backpropagation", "education", "numpy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
-    "graphviz",
-    "numpy"
+    "numpy>=1.21",
 ]
 
 [project.optional-dependencies]
+# graphviz is only needed to draw computation graphs, so it stays optional
+# rather than forcing a system-level dependency on every install.
+viz = ["graphviz"]
+# torch is a test-only dependency. Gradients are checked against it, but
+# mangograd itself never imports it.
 dev = [
-    "pytest",
+    "pytest>=7",
+    "torch>=2",
 ]
+
+[project.urls]
+Homepage = "https://github.com/rasinmuhammed/mangograd"
+Repository = "https://github.com/rasinmuhammed/mangograd"
+Issues = "https://github.com/rasinmuhammed/mangograd/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["mangograd*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
