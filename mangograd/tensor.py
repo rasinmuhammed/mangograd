@@ -18,7 +18,9 @@ def unbroadcast(grad, target_shape):
 
 class Tensor:
     def __init__(self, data, _children=(), _op='', label=''):
-        self.data = np.array(data)
+        # Always float. An integer array silently breaks the optimizer, because
+        # p.data += v cannot cast a float update back into an int buffer.
+        self.data = np.asarray(data, dtype=np.float64)
         self.grad = np.zeros_like(self.data)
         self._backward = lambda: None
         self._prev = set(_children)
@@ -118,21 +120,60 @@ class Tensor:
 
     def max(self, axis=None, keepdims=False):
         out = Tensor(np.max(self.data, axis=axis, keepdims=keepdims), (self,), 'max')
+
         def _backward():
-            # Gradient routes out to the maximum elements
-            # We create a boolean mask of where the max elements are
-            mask = (self.data == out.data)
-            self.grad += unbroadcast( mask * out.grad, self.data.shape)
-        
+            # Ties need care, and PyTorch is not internally consistent about
+            # them: a global max() splits the gradient evenly across tied
+            # maxima, while max(dim=) routes all of it to the first. Both are
+            # valid subgradients. We follow PyTorch in each case so gradients
+            # are comparable when checking against it.
+            if axis is None:
+                mask = (self.data == out.data).astype(self.data.dtype)
+                mask /= mask.sum()
+                grad = out.grad
+            else:
+                idx = np.argmax(self.data, axis=axis)
+                mask = np.zeros_like(self.data)
+                np.put_along_axis(
+                    mask, np.expand_dims(idx, axis=axis), 1.0, axis=axis
+                )
+                grad = out.grad if keepdims else np.expand_dims(out.grad, axis=axis)
+            self.grad += mask * grad
+
         out._backward = _backward
         return out
 
-    def mean(self):
-        out = Tensor(np.mean(self.data), (self,), 'mean')
+    def mean(self, axis=None, keepdims=False):
+        out = Tensor(np.mean(self.data, axis=axis, keepdims=keepdims), (self,), 'mean')
+
         def _backward():
-            # Gradient distributed equally, scaled down by number of elements
-            self.grad += np.ones_like(self.data) * (out.grad / self.data.size)
-        
+            count = self.data.size if axis is None else self.data.shape[axis]
+            grad = out.grad
+            if axis is not None and not keepdims:
+                grad = np.expand_dims(grad, axis=axis)
+            # Gradient spreads equally over everything that was averaged.
+            self.grad += np.ones_like(self.data) * (grad / count)
+
+        out._backward = _backward
+        return out
+
+    def var(self, axis=None, keepdims=False):
+        """Biased (population) variance, matching what BatchNorm normalises by.
+
+        Kept in the graph rather than computed on .data, because the whole
+        subtlety of BatchNorm's derivation is that gradients flow through the
+        batch statistics, not just around them.
+        """
+        mu = self.mean(axis=axis, keepdims=True)
+        diff = self - mu
+        return (diff * diff).mean(axis=axis, keepdims=keepdims)
+
+    def sqrt(self):
+        out = Tensor(np.sqrt(self.data), (self,), 'sqrt')
+
+        def _backward():
+            self.grad += (0.5 / np.sqrt(self.data)) * out.grad
+
         out._backward = _backward
         return out
 
