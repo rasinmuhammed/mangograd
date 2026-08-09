@@ -48,4 +48,7 @@ where = ["."]
 include = ["mangograd*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "mangograd"]
+# Examples in docstrings are executed, so documentation that drifts out of
+# date fails CI instead of quietly lying to the reader.
+addopts = "--doctest-modules"
