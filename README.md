@@ -76,6 +76,35 @@ for epoch in range(100):
 model.save_state_dict("model.npz")
 ```
 
+## Reading the source
+
+The whole library is about 700 lines. If you want to understand how autograd
+actually works, read it in this order:
+
+**1. `mangograd/engine.py`** (~100 lines) is micrograd: one number at a time.
+Start with `__add__` and `__mul__`. Notice that each operation stores a
+`_backward` closure holding its own local derivative, and that `backward()`
+just calls them in reverse topological order. That is the entire idea. Every
+deep learning framework is this, plus performance engineering.
+
+**2. `mangograd/tensor.py`** is the same thing over NumPy arrays. The
+operations are identical in spirit, so the only genuinely new concept is
+`unbroadcast`, which is the first function in the file and the one worth
+slowing down for. `__matmul__` is the other one to sit with: the transposes
+in its backward pass are forced by shape, not chosen.
+
+**3. `mangograd/nn.py`** is Tensors in a trench coat. No layer has a
+`backward` method because none of them needs one, the engine already handles
+it. `BatchNorm` is the interesting one: its batch statistics are computed
+with `Tensor` ops rather than raw NumPy, specifically so gradients flow
+*through* the normalisation instead of around it.
+
+**4. `mangograd/optim.py` and `mangograd/loss.py`** last. SGD is four lines.
+Adam is worth reading closely if you have only ever used it as a string.
+
+Every backward pass has the derivative written above it in maths notation,
+so you can check the code against the calculus without leaving the file.
+
 ## Benchmark: scalars versus tensors
 
 Micrograd represents every number as its own `Value` object and loops in
@@ -115,6 +144,9 @@ mistake that produces plausible but wrong gradients.
 There is also an end-to-end test that trains a network with BatchNorm and
 Dropout to over 95% accuracy on a non-linearly separable problem, since
 correct gradients alone do not prove a model can learn.
+
+Docstring examples are executed as part of the suite, so documentation that
+drifts out of date fails CI rather than quietly misleading whoever reads it.
 
 ```bash
 pip install -e ".[dev]"
