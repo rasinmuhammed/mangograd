@@ -147,7 +147,7 @@ class Tensor:
         out._backward = _backward
         return out
 
-    def backward(self):
+    def backward(self, explain=False):
         topo = []
         visited = set()
         def build_topo(v):
@@ -161,5 +161,24 @@ class Tensor:
         # The initial gradient of the loss is a matrix of 1.0s
         self.grad = np.ones_like(self.data)
         
-        for node in reversed(topo):
+        for i, node in enumerate(reversed(topo)):
             node._backward()
+
+            if explain:
+                name = node.label if node.label else f"node_{i}"
+                op = node._op if node._op else "leaf"
+                grad_abs = np.abs(node.grad)
+                
+                status = "✓"
+                if np.any(np.isnan(node.grad)):
+                    status = "💀 NaN DETECTED"
+                elif grad_abs.max() > 1000:
+                    status = "🔥 EXPLODING"
+                elif grad_abs.max() < 1e-7 and node._op:
+                    status = "🧊 VANISHING"
+                
+                print(f"  [{op:>8}] {name:<20} | shape: {str(node.data.shape):<12} | "
+                      f"grad min: {node.grad.min():>10.6f} | "
+                      f"grad max: {node.grad.max():>10.6f} | "
+                      f"grad mean: {node.grad.mean():>10.6f} | {status}")
+
