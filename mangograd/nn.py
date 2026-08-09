@@ -1,7 +1,25 @@
+"""Layers.
+
+There is no magic here. Every layer is Tensor operations in a trench coat,
+and the autograd engine in tensor.py handles all the differentiation. That is
+why none of these classes has a `backward` method: they do not need one.
+"""
+
 import numpy as np
+
 from mangograd.tensor import Tensor
 
+
 class Module:
+    """Base class holding the boring parts every layer needs.
+
+    The one interesting method is `parameters`, which walks the tree of child
+    modules rather than being written out per class. Hardcoding it is how a
+    layer ends up silently untrained: you add a BatchNorm to a model, forget
+    to list its gamma and beta, and the optimizer never touches them. Nothing
+    errors, the model just quietly learns less.
+    """
+
     training = True
 
     def zero_grad(self):
@@ -71,14 +89,26 @@ class Module:
             p.data = arrays[f'p_{i}']
 
 class Linear(Module):
+    """A fully connected layer: y = xW + b.
+
+    >>> layer = Linear(3, 2)
+    >>> layer(Tensor(np.zeros((5, 3)))).data.shape
+    (5, 2)
+    """
+
     def __init__(self, in_features, out_features):
-        # Weight Matrix: Shape (in, out)
-        # We scale by sqrt(in_features) for better initialization (Kaiming init)
+        # Dividing by sqrt(in_features) is Kaiming init, and it matters more
+        # than it looks. Summing n inputs multiplies the variance by n, so
+        # without the scaling, activations grow layer over layer until they
+        # saturate or overflow. This keeps the variance roughly constant as
+        # depth increases.
         self.weight = Tensor(np.random.randn(in_features, out_features) / np.sqrt(in_features))
-        # Bias Vector: Shape (1, out)
         self.bias = Tensor(np.zeros((1, out_features)))
 
     def __call__(self, x):
+        # (B, in) @ (in, out) -> (B, out), then (1, out) broadcasts over B.
+        # The broadcast is why the bias gradient needs unbroadcast() to sum
+        # back down over the batch.
         return x @ self.weight + self.bias
 
     def parameters(self):
@@ -105,12 +135,19 @@ class Dropout(Module):
         self.training = True
 
     def __call__(self, x):
+        # At inference this is the identity. Randomly deleting neurons is a
+        # training-time regulariser; doing it at prediction time would just
+        # make the model worse and non-deterministic.
         if not self.training:
             return x
-        # Create a mask of 1s and 0s. 1 = keep, 0 = drop (mask is same shape as x)
-        # We keep each neuron with probability (1 - p)
+
         mask = Tensor((np.random.rand(*x.data.shape) > self.p).astype(np.float64))
-        # Scale up survivors so the expected sum stays the same ( inverted dropout )
+
+        # Scaling survivors by 1/(1-p) is "inverted dropout". Drop half the
+        # neurons and the layer's output sum halves, so the next layer sees a
+        # different scale in training than at inference. Scaling up here keeps
+        # the expected value identical, which is what lets the eval path be a
+        # plain identity instead of needing its own correction.
         return x * mask * (1.0 / (1.0 - self.p))
 
 class BatchNorm(Module):
@@ -147,6 +184,10 @@ class BatchNorm(Module):
             mean = Tensor(self.running_mean)
             var = Tensor(self.running_var)
 
+        # Normalise to zero mean and unit variance, then let the network undo
+        # it if it wants. gamma and beta are learnable, so the layer can
+        # recover the original distribution when normalising hurts. Without
+        # them, BatchNorm would be a constraint rather than an option.
         x_norm = (x - mean) / (var + self.eps).sqrt()
         return self.gamma * x_norm + self.beta
 
