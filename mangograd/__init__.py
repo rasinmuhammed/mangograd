@@ -1,7 +1,12 @@
 """A readable, NumPy-backed tensor autograd engine.
 
-Scalar `Value` is kept for the micrograd-style walkthrough. Everything else
-is built on `Tensor`, which is vectorised and what you want in practice.
+Born out of Andrej Karpathy's micrograd (https://github.com/karpathy/micrograd),
+which teaches backpropagation on scalars. This picks up where that leaves off:
+the same readable pure-Python backward passes, but over NumPy arrays, so the
+networks are actually trainable.
+
+Scalar `Value` is kept for the micrograd-style walkthrough. Everything else is
+built on `Tensor`, which is vectorised and what you want in practice.
 """
 
 from .engine import Value

@@ -8,6 +8,10 @@
 
 Welcome to **Mangograd**. A NumPy-backed tensor autograd engine that bridges the gap between educational scalar engines and industrial-grade frameworks.
 
+> Built on top of the ideas in [Andrej Karpathy's micrograd](https://github.com/karpathy/micrograd).
+> Micrograd teaches backpropagation on scalars in about 150 lines you can read in one sitting.
+> Mangograd picks up where that leaves off.
+
 ## The Gap: Why does this exist?
 
 If you want to understand how neural networks work, you have two extremes:
@@ -71,6 +75,31 @@ for epoch in range(100):
 # 4. Save
 model.save_state_dict("model.npz")
 ```
+
+## Benchmark: scalars versus tensors
+
+Micrograd represents every number as its own `Value` object and loops in
+Python, which is what makes it so readable and also what makes it unusable for
+real training. Mangograd keeps the same readable backward passes but runs them
+over NumPy arrays.
+
+Both engines are in this repo, so you can run the comparison yourself on an
+identical network:
+
+```
+network 20-32-1, batch 64, 20 epochs, 705 parameters
+  scalar Value     19.335s
+  Tensor            0.007s
+  speedup            2736x
+```
+
+```bash
+python examples/benchmark_scalar_vs_tensor.py
+```
+
+This is not a criticism of micrograd. It is deliberately scalar so the code
+stays small enough to teach from. The point is that once you understand it,
+you need something vectorised, and that is the gap this fills.
 
 ## Correctness
 

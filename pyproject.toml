@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mangograd"
 version = "0.1.0"
-description = "A readable, NumPy-backed tensor autograd engine for learning how backpropagation actually works"
+description = "A readable, NumPy-backed tensor autograd engine, born out of Andrej Karpathy's micrograd"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
