@@ -34,12 +34,18 @@ Mangograd sits directly in the middle. It uses multidimensional **Tensors** back
 ## Installation
 
 ```bash
+pip install git+https://github.com/rasinmuhammed/mangograd.git
+```
+
+Or clone it to read alongside the source:
+
+```bash
 git clone https://github.com/rasinmuhammed/mangograd.git
 cd mangograd
-
-# Install in editable mode
 pip install -e .
 ```
+
+The only runtime dependency is `numpy`. `torch` is only needed to run the test suite (`pip install -e ".[dev]"`), not to use the library.
 
 ## Quick Start (It's exactly like PyTorch)
 
@@ -122,8 +128,21 @@ network 20-32-1, batch 64, 20 epochs, 705 parameters
   speedup            2736x
 ```
 
+MNIST (784→128→64→10, Adam, 5 epochs, 60k training images):
+
+```
+Epoch 1 | Loss: 0.2994 | Train Acc: 91.4%
+Epoch 2 | Loss: 0.1177 | Train Acc: 96.4%
+Epoch 3 | Loss: 0.0811 | Train Acc: 97.5%
+Epoch 4 | Loss: 0.0626 | Train Acc: 98.0%
+Epoch 5 | Loss: 0.0478 | Train Acc: 98.6%
+
+🥭 MNIST Test Accuracy: 97.52%
+⏱  Total time: 26.8s (CPU only, no GPU)
+```
+
 ```bash
-python examples/benchmark_scalar_vs_tensor.py
+python examples/train_mnist.py   # downloads MNIST on first run, then caches it
 ```
 
 This is not a criticism of micrograd. It is deliberately scalar so the code

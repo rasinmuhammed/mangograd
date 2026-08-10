@@ -41,11 +41,3 @@ class CrossEntropyLoss:
         loss._prev = {logits}
 
         return loss
-
-    
-        
-            
-            
-
-        
-        
