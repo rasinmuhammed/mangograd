@@ -15,7 +15,7 @@ from .nn import BatchNorm, Dropout, Linear, MLP, Module
 from .optim import SGD, Adam, Optimizer
 from .tensor import Tensor
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "Value",
